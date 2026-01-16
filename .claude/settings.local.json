@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.api.nvidia.com)",
+      "WebFetch(domain:build.nvidia.com)",
+      "Bash(bun init:*)",
+      "Bash(bun add:*)"
+    ]
+  }
+}

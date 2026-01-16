@@ -1,0 +1,27 @@
+{
+  "name": "nemotron-cli",
+  "version": "0.1.0",
+  "description": "A coding agent CLI powered by NVIDIA Nemotron 3 Nano",
+  "module": "src/index.ts",
+  "type": "module",
+  "bin": {
+    "nemotron": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts"
+  },
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "cli-highlight": "^2.1.11",
+    "marked": "^17.0.1",
+    "marked-terminal": "^7.3.0"
+  }
+}
