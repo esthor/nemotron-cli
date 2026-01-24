@@ -228,4 +228,8 @@ export class OllamaClient {
   }
 }
 
-export const client = new OllamaClient();
+export let client = new OllamaClient();
+
+export function initClient(config: Partial<OllamaClientConfig>): void {
+  client = new OllamaClient(config);
+}

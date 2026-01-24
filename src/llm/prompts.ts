@@ -1,30 +1,100 @@
 import type { Tool } from "./client.ts";
 
-export const SYSTEM_PROMPT = `You are an autonomous coding agent with access to tools. You MUST use tools to complete tasks - do not just describe what you would do.
+export const SYSTEM_PROMPT = `You are an autonomous coding agent that orchestrates specialized sub-agents.
 
-## CRITICAL: You have these tools - USE THEM:
-- read_file(path): Read file contents - USE THIS to see what's in files
-- write_file(path, content): Create/overwrite files - USE THIS to write code
-- edit_file(path, search, replace): Edit files - USE THIS for targeted changes
-- bash(command): Run shell commands - USE THIS for git, npm, tests, etc.
-- glob(pattern): Find files - USE THIS to discover files (e.g., "**/*.ts")
-- grep(pattern, path): Search code - USE THIS to find text in files
+## CRITICAL: Minimal Context by Decomposition
+- ALWAYS decompose tasks into the SMALLEST possible sub-agent scopes
+- Spawn MANY focused agents rather than FEW broad agents
+- Each agent should do ONE thing well
+- NEVER ask an agent to do more than 3-5 iterations of work
+- Maximize parallelism by spawning independent agents simultaneously
 
-## IMPORTANT BEHAVIORS:
-1. When asked to do something, USE THE TOOLS IMMEDIATELY - don't ask clarifying questions unless absolutely necessary
-2. When asked about files, USE glob or read_file to look at them first
-3. When asked to edit/modify, USE read_file first, then edit_file or write_file
-4. When asked to run commands, USE bash
-5. NEVER say "I would do X" - actually DO IT with tools
+## Available Tools
+Direct tools (for simple, 1-2 step operations):
+- read_file(path): Read file contents
+- write_file(path, content): Create/overwrite files
+- edit_file(path, search, replace): Edit files
+- bash(command): Run shell commands
+- glob(pattern): Find files
+- grep(pattern, path): Search code
 
-## Example: If user says "edit the readme", you should:
-1. Call glob("**/README*") to find README files
-2. Call read_file on the found file
-3. Call edit_file or write_file to make changes
+Sub-agent delegation (for complex, multi-step tasks):
+- spawn_agent(agent_type, prompt): Delegate to specialized agent
 
-Be proactive. Take action. Use your tools.`;
+## Sub-Agent Types
+- explore: Fast, focused file discovery - ONE specific search
+- research: Single web search query with focused results
+- plan: Design plan for ONE component/feature
+- execute: Implement ONE file or small set of related changes
+- refactor: Address ONE specific code quality issue
+- assess: Evaluate ONE specific decision or feature
+- verify: Run ONE test suite or validation check
+
+## Decomposition Examples
+BAD: spawn explore agent with "understand the entire codebase"
+GOOD: spawn 5 explore agents in parallel:
+  - "find all TypeScript entry points"
+  - "find configuration files"
+  - "find test files and patterns"
+  - "find API route handlers"
+  - "find shared utilities"
+
+BAD: spawn execute agent with "implement user authentication"
+GOOD: spawn multiple execute agents sequentially:
+  - "create User model in src/models/user.ts"
+  - "create auth middleware in src/middleware/auth.ts"
+  - "add login route to src/routes/auth.ts"
+
+## When to use sub-agents vs direct tools
+- Use sub-agents for ANY task requiring more than 1-2 tool calls
+- Use direct tools only for trivial, single-step operations
+- Spawn multiple agents simultaneously when tasks are independent
+
+## Orchestration Pattern
+1. Understand the user's request
+2. Decompose into SMALLEST possible sub-tasks
+3. Identify which can run in parallel vs sequential
+4. Spawn parallel agents simultaneously
+5. Synthesize results
+6. Present coherent response to user
+
+Be proactive. Delegate effectively. Synthesize results clearly.`;
 
 export const tools: Tool[] = [
+  {
+    type: "function",
+    function: {
+      name: "spawn_agent",
+      description: `Spawn a specialized sub-agent to handle a specific task. Use this for complex tasks that need focused attention.
+
+Available agent types:
+- explore: Fast codebase exploration, file discovery (3 iterations max)
+- research: Web search, documentation lookup (4 iterations max)
+- plan: Architectural design, implementation planning (5 iterations max)
+- execute: Code implementation, file modifications (5 iterations max)
+- refactor: Code quality, integration coherence (4 iterations max)
+- assess: Business logic & value assessment (3 iterations max)
+- verify: Testing, validation, E2E (4 iterations max)
+
+IMPORTANT: Keep prompts focused and specific. Each agent should do ONE thing well.`,
+      parameters: {
+        type: "object",
+        properties: {
+          agent_type: {
+            type: "string",
+            description:
+              "The type of specialized agent to spawn: explore, research, plan, execute, refactor, assess, verify",
+          },
+          prompt: {
+            type: "string",
+            description:
+              "Specific, focused instructions for the sub-agent. Keep it narrow in scope.",
+          },
+        },
+        required: ["agent_type", "prompt"],
+      },
+    },
+  },
   {
     type: "function",
     function: {
@@ -148,6 +218,42 @@ export const tools: Tool[] = [
           },
         },
         required: ["pattern"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description:
+        "Search the web for information. Returns top search results with titles, URLs, and snippets.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "The search query",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_fetch",
+      description:
+        "Fetch and read content from a URL. Converts HTML to readable text.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description: "The URL to fetch (must start with http:// or https://)",
+          },
+        },
+        required: ["url"],
       },
     },
   },
