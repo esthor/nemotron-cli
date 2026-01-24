@@ -109,3 +109,8 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+
+## Git Workflow
+
+- Never push directly to main. Always open a PR.
+- Always work on one feature at a time in its own git worktree. Do not mix multiple features in a single branch or commit.
