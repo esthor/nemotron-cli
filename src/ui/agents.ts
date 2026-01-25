@@ -64,14 +64,17 @@ export class AgentRenderer {
     const style = AGENT_STYLES[agent.type];
     const shortId = taskId.slice(0, 5);
 
-    // Truncate args for display
-    const displayArgs = args.length > 60 ? args.slice(0, 60) + "..." : args;
+    // Unicode-safe truncation using spread operator to handle multi-byte characters
+    const maxChars = 60;
+    const chars = [...args]; // Spread respects Unicode code points
+    const displayArgs =
+      chars.length > maxChars ? chars.slice(0, maxChars).join("") + "..." : args;
 
     this.clearSpinnerLine();
     console.log(
       colorize(`  [${shortId}] `, "dim") +
-      colorize(`⚡ ${tool}`, style.color) +
-      colorize(`(${displayArgs})`, "dim")
+        colorize(`⚡ ${tool}`, style.color) +
+        colorize(`(${displayArgs})`, "dim")
     );
     this.renderStatusLine();
   }
@@ -201,6 +204,15 @@ export class AgentRenderer {
    */
   getActiveCount(): number {
     return this.activeAgents.size;
+  }
+
+  /**
+   * Clean up resources and restore terminal state.
+   * Call this before process exit to prevent interval leaks.
+   */
+  dispose(): void {
+    this.stopSpinner();
+    this.activeAgents.clear();
   }
 }
 

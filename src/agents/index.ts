@@ -112,7 +112,7 @@ export function getAgentTypes(): AgentType[] {
  * Check if a string is a valid agent type
  */
 export function isValidAgentType(type: string): type is AgentType {
-  return type in AGENT_CONFIGS;
+  return Object.prototype.hasOwnProperty.call(AGENT_CONFIGS, type);
 }
 
 /**

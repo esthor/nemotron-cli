@@ -7,6 +7,35 @@ const MAX_CONTENT_SIZE = 50000; // 50KB limit for fetched content
 const SEARCH_TIMEOUT = 10000; // 10 seconds
 const FETCH_TIMEOUT = 15000; // 15 seconds
 
+// SSRF Protection: Block private/local addresses
+const BLOCKED_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "0.0.0.0",
+  "::1",
+  "169.254.169.254", // AWS metadata
+]);
+
+const PRIVATE_IP_RANGES = [
+  /^127\./, // 127.0.0.0/8
+  /^10\./, // 10.0.0.0/8
+  /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
+  /^192\.168\./, // 192.168.0.0/16
+  /^169\.254\./, // 169.254.0.0/16
+  /^\[?::1\]?$/, // IPv6 loopback
+  /^\[?fe80:/i, // IPv6 link-local
+  /^\[?fc00:/i, // IPv6 private
+];
+
+/**
+ * Check if a hostname is blocked (private/local address)
+ */
+function isBlockedHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (BLOCKED_HOSTS.has(host)) return true;
+  return PRIVATE_IP_RANGES.some((pattern) => pattern.test(host));
+}
+
 /**
  * Search the web using DuckDuckGo HTML API (no API key required)
  */
@@ -48,47 +77,63 @@ export async function webSearch(query: string): Promise<string> {
 
 /**
  * Parse DuckDuckGo HTML search results
+ * NOTE: This uses regex to parse DuckDuckGo HTML. May break on layout changes.
+ * TODO: Consider switching to a proper HTML parser (cheerio/jsdom) for robustness.
  */
 function parseSearchResults(html: string): string {
   const results: { title: string; url: string; snippet: string }[] = [];
 
-  // Match result blocks - DuckDuckGo uses <a class="result__a"> for titles
-  const resultPattern =
-    /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>([^<]*)<\/a>/g;
+  try {
+    // Match result blocks - DuckDuckGo uses <a class="result__a"> for titles
+    const resultPattern =
+      /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>([^<]*)<\/a>/g;
 
-  let match;
-  while ((match = resultPattern.exec(html)) !== null && results.length < 10) {
-    const [, url, title, snippet] = match;
-    if (url && title) {
-      results.push({
-        title: decodeHtmlEntities(title.trim()),
-        url: decodeUrl(url),
-        snippet: decodeHtmlEntities(snippet?.trim() || ""),
-      });
-    }
-  }
-
-  // Fallback: try simpler pattern if no results
-  if (results.length === 0) {
-    const simplePattern = /<a[^>]*href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/g;
-    while (
-      (match = simplePattern.exec(html)) !== null &&
-      results.length < 10
-    ) {
-      const [, url, title] = match;
-      if (
-        url &&
-        title &&
-        !url.includes("duckduckgo.com") &&
-        title.trim().length > 10
-      ) {
-        results.push({
-          title: decodeHtmlEntities(title.trim()),
-          url: url,
-          snippet: "",
-        });
+    let match;
+    while ((match = resultPattern.exec(html)) !== null && results.length < 10) {
+      const [, url, title, snippet] = match;
+      if (url && title) {
+        try {
+          results.push({
+            title: decodeHtmlEntities(title.trim()),
+            url: decodeUrl(url),
+            snippet: decodeHtmlEntities(snippet?.trim() || ""),
+          });
+        } catch {
+          // Skip malformed results
+        }
       }
     }
+
+    // Fallback: try simpler pattern if no results
+    if (results.length === 0) {
+      const simplePattern =
+        /<a[^>]*href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/g;
+      while (
+        (match = simplePattern.exec(html)) !== null &&
+        results.length < 10
+      ) {
+        const [, url, title] = match;
+        if (
+          url &&
+          title &&
+          !url.includes("duckduckgo.com") &&
+          title.trim().length > 10
+        ) {
+          try {
+            results.push({
+              title: decodeHtmlEntities(title.trim()),
+              url: url,
+              snippet: "",
+            });
+          } catch {
+            // Skip malformed results
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[parseSearchResults] Failed to parse HTML:", error);
+    return "Failed to parse search results. The search provider may have changed their format.";
   }
 
   if (results.length === 0) {
@@ -109,6 +154,14 @@ function parseSearchResults(html: string): string {
 export async function webFetch(url: string): Promise<string> {
   if (!url || !url.startsWith("http")) {
     throw new Error("Invalid URL - must start with http:// or https://");
+  }
+
+  // SSRF protection: block private/local addresses
+  const parsedUrl = new URL(url);
+  if (isBlockedHost(parsedUrl.hostname)) {
+    throw new Error(
+      `Blocked: Cannot fetch from private/local address: ${parsedUrl.hostname}`
+    );
   }
 
   const controller = new AbortController();

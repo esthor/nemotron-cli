@@ -150,7 +150,7 @@ export function isVerifyResult(result: AgentResult): result is VerifyResult {
   return result.type === "verify";
 }
 
-// Generate unique task ID
+// Generate unique task ID using cryptographically secure random UUID
 export function generateTaskId(): string {
-  return Math.random().toString(36).substring(2, 7);
+  return crypto.randomUUID();
 }

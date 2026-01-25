@@ -96,6 +96,26 @@ ${colorize("Sub-Agents:", "dim")}
     return agentExecutor.spawn(agentType, prompt);
   });
 
+  // Register cleanup handlers for process exit
+  const cleanup = () => {
+    agentRenderer.dispose();
+  };
+
+  process.on("exit", cleanup);
+  process.on("SIGINT", () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught exception:", error);
+    cleanup();
+    process.exit(1);
+  });
+
   // Show welcome
   renderWelcome();
   console.log(

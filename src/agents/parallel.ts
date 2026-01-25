@@ -20,6 +20,12 @@ export interface ParallelAgentCallbacks {
   onAgentError: (taskId: string, error: Error) => void;
 }
 
+/** Result of spawning multiple agents */
+export interface SpawnAllResult {
+  successes: Map<string, AgentResult>;
+  failures: Map<string, Error>;
+}
+
 export class ParallelAgentExecutor {
   private activeTasks: Map<string, SubAgentTask> = new Map();
   private callbacks: ParallelAgentCallbacks;
@@ -29,14 +35,27 @@ export class ParallelAgentExecutor {
   }
 
   /**
+   * Generate a unique task ID that doesn't collide with active tasks
+   */
+  private generateUniqueTaskId(maxAttempts = 100): string {
+    for (let i = 0; i < maxAttempts; i++) {
+      const taskId = generateTaskId();
+      if (!this.activeTasks.has(taskId)) {
+        return taskId;
+      }
+    }
+    throw new Error("Failed to generate unique task ID after maximum attempts");
+  }
+
+  /**
    * Spawn multiple agents in parallel
-   * Returns when ALL agents complete
+   * Returns when ALL agents complete, with both successes and failures
    */
   async spawnAll(
     tasks: { agentType: AgentType; prompt: string }[]
-  ): Promise<Map<string, AgentResult>> {
+  ): Promise<SpawnAllResult> {
     const taskIds = tasks.map((t) => {
-      const taskId = generateTaskId();
+      const taskId = this.generateUniqueTaskId();
       const task: SubAgentTask = {
         id: taskId,
         agentType: t.agentType,
@@ -52,16 +71,27 @@ export class ParallelAgentExecutor {
     const promises = taskIds.map((id) => this.executeTask(id));
     const settledResults = await Promise.allSettled(promises);
 
-    // Aggregate results
-    const results = new Map<string, AgentResult>();
+    // Aggregate results, tracking both successes and failures
+    const successes = new Map<string, AgentResult>();
+    const failures = new Map<string, Error>();
+
     settledResults.forEach((settled, index) => {
       const taskId = taskIds[index];
-      if (taskId && settled.status === "fulfilled") {
-        results.set(taskId, settled.value);
+      if (taskId) {
+        if (settled.status === "fulfilled") {
+          successes.set(taskId, settled.value);
+        } else {
+          failures.set(
+            taskId,
+            settled.reason instanceof Error
+              ? settled.reason
+              : new Error(String(settled.reason))
+          );
+        }
       }
     });
 
-    return results;
+    return { successes, failures };
   }
 
   /**

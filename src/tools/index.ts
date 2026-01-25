@@ -9,6 +9,8 @@ import { webSearch, webFetch } from "./web.ts";
 import type { AgentType, AgentResult } from "../agents/types.ts";
 import { isValidAgentType } from "../agents/index.ts";
 
+const MAX_PROMPT_LENGTH = 8192; // 8KB limit for agent prompts
+
 export type ToolResult = {
   success: boolean;
   output: string;
@@ -49,6 +51,12 @@ const toolHandlers: Record<string, ToolHandler> = {
     if (!isValidAgentType(agentType)) {
       throw new Error(
         `Invalid agent type: ${agentType}. Valid types: explore, research, plan, execute, refactor, assess, verify`
+      );
+    }
+
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      throw new Error(
+        `Prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters (got ${prompt.length}). Consider breaking into smaller tasks.`
       );
     }
 

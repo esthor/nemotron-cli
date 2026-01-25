@@ -18,13 +18,32 @@ import {
 import { tools } from "../../src/llm/prompts.ts";
 
 describe("Agent Types", () => {
-  test("generateTaskId creates unique 5-char IDs", () => {
+  test("generateTaskId creates unique UUIDs", () => {
     const id1 = generateTaskId();
     const id2 = generateTaskId();
 
-    expect(id1).toHaveLength(5);
-    expect(id2).toHaveLength(5);
+    // UUIDs are 36 characters in format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    expect(id1).toHaveLength(36);
+    expect(id2).toHaveLength(36);
+    expect(id1).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
+    expect(id2).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
     expect(id1).not.toBe(id2);
+  });
+
+  test("generateTaskId produces unique IDs in batch", () => {
+    const ids = new Set<string>();
+    const count = 10000;
+
+    for (let i = 0; i < count; i++) {
+      ids.add(generateTaskId());
+    }
+
+    // All IDs should be unique
+    expect(ids.size).toBe(count);
   });
 
   test("type guards correctly identify result types", () => {
