@@ -22,7 +22,9 @@ let spawnAgentHandler:
   | null = null;
 
 /**
- * Set the spawn_agent handler (called from main loop setup)
+ * Registers the handler used by the tool system to spawn agents.
+ *
+ * @param handler - Function that, given an agent type and a prompt, produces an AgentResult describing the spawned agent's outcome.
  */
 export function setSpawnAgentHandler(
   handler: (agentType: AgentType, prompt: string) => Promise<AgentResult>
@@ -31,7 +33,9 @@ export function setSpawnAgentHandler(
 }
 
 /**
- * Check if spawn_agent is available
+ * Determine whether an agent spawn handler has been registered.
+ *
+ * @returns `true` if a spawn agent handler is registered and available, `false` otherwise.
  */
 export function isSpawnAgentAvailable(): boolean {
   return spawnAgentHandler !== null;
@@ -99,6 +103,13 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
 };
 
+/**
+ * Execute a registered tool by name using a JSON-encoded arguments object.
+ *
+ * @param name - The tool identifier to invoke
+ * @param argsJson - A JSON string representing the tool's arguments (parsed to a plain object)
+ * @returns An object with `success` and `output`: `success` is `true` if the tool handler completed successfully, `false` otherwise; `output` is the handler's result on success or an error message (for example, `Unknown tool: <name>` or `Error: <message>`). 
+ */
 export async function executeTool(
   name: string,
   argsJson: string
@@ -122,6 +133,12 @@ export async function executeTool(
   }
 }
 
+/**
+ * Format a tool invocation into a concise, human-readable string.
+ *
+ * @param argsJson - A JSON-encoded object of argument key/value pairs; string values longer than 50 characters are truncated with `...` for brevity.
+ * @returns A string in the form `name(key: value, ...)`. If `argsJson` is not valid JSON, returns `name(argsJson)` with the raw input. 
+ */
 export function formatToolCall(name: string, argsJson: string): string {
   try {
     const args = JSON.parse(argsJson) as Record<string, unknown>;

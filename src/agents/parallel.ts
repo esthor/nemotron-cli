@@ -155,7 +155,9 @@ export class ParallelAgentExecutor {
 }
 
 /**
- * Create a simple executor with console logging (for testing)
+ * Creates a ParallelAgentExecutor configured with console-based callbacks for simple testing.
+ *
+ * @returns A ParallelAgentExecutor that logs agent lifecycle events, progress, tool calls, completions, and errors to the console.
  */
 export function createSimpleExecutor(): ParallelAgentExecutor {
   return new ParallelAgentExecutor({

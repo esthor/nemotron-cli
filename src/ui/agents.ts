@@ -205,21 +205,29 @@ export class AgentRenderer {
 }
 
 /**
- * Format agent result as pretty JSON for display
+ * Render an AgentResult as pretty-printed JSON for display.
+ *
+ * @returns A human-readable JSON string representation of `result` with two-space indentation.
  */
 export function formatAgentResult(result: AgentResult): string {
   return JSON.stringify(result, null, 2);
 }
 
 /**
- * Summarize result for quick display
+ * Extract the summary text from an AgentResult.
+ *
+ * @returns The `summary` string from the provided `result`.
  */
 export function summarizeResult(result: AgentResult): string {
   return result.summary;
 }
 
 /**
- * Render a detailed result pane (for verbose output)
+ * Print a framed, colorized pane showing the full AgentResult for a task.
+ *
+ * @param taskId - The task's identifier; the header shows a shortened (first 5 chars) form.
+ * @param agentType - The agent type whose configured style and color are used for the pane header.
+ * @param result - The AgentResult to render; output is printed as pretty-printed JSON lines inside the frame.
  */
 export function renderResultPane(taskId: string, agentType: AgentType, result: AgentResult): void {
   const style = AGENT_STYLES[agentType];

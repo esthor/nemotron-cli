@@ -82,14 +82,21 @@ export const AGENT_CONFIGS: Record<AgentType, AgentConfig> = {
 };
 
 /**
- * Get agent configuration by type
+ * Retrieve the configuration for the specified agent type.
+ *
+ * @param type - The agent type key to look up
+ * @returns The AgentConfig associated with `type`
  */
 export function getAgentConfig(type: AgentType): AgentConfig {
   return AGENT_CONFIGS[type];
 }
 
 /**
- * Filter tools to only those allowed for an agent type
+ * Return the subset of tools that the specified agent type is allowed to use.
+ *
+ * @param allTools - The list of available tools to filter
+ * @param agentType - The agent type whose allowed tools determine the filter
+ * @returns The filtered array of tools whose function names are permitted for `agentType`
  */
 export function filterToolsForAgent(
   allTools: Tool[],
@@ -102,21 +109,28 @@ export function filterToolsForAgent(
 }
 
 /**
- * Get all available agent types
+ * List all registered agent types.
+ *
+ * @returns An array of available `AgentType` values derived from the agent registry
  */
 export function getAgentTypes(): AgentType[] {
   return Object.keys(AGENT_CONFIGS) as AgentType[];
 }
 
 /**
- * Check if a string is a valid agent type
+ * Determine whether a string corresponds to a registered AgentType.
+ *
+ * @param type - The string to validate as an agent type.
+ * @returns `true` if `type` is a key in `AGENT_CONFIGS`, `false` otherwise.
  */
 export function isValidAgentType(type: string): type is AgentType {
   return type in AGENT_CONFIGS;
 }
 
 /**
- * Get agent description for tool documentation
+ * Builds a formatted list of all agent types paired with their short descriptions.
+ *
+ * @returns A newline-separated string where each line has the form `- <type>: <description>` for every agent in the registry
  */
 export function getAgentDescriptions(): string {
   return Object.values(AGENT_CONFIGS)

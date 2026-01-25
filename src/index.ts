@@ -22,6 +22,15 @@ import { ParallelAgentExecutor } from "./agents/parallel.ts";
 import { AgentRenderer } from "./ui/agents.ts";
 import type { AgentType } from "./agents/types.ts";
 
+/**
+ * Start the Nemotron CLI: initialize clients and agents, then run the interactive REPL.
+ *
+ * Parses command-line flags (help, version, cloud), optionally configures the LLM client,
+ * verifies the Ollama connection, initializes agent rendering and execution, registers the
+ * spawn_agent handler, and enters a read–eval–print loop that accepts user queries and
+ * dispatches them to agents and tools. Exits the process for help/version output, connection
+ * failures, or explicit user commands (e.g., "exit").
+ */
 async function main() {
   // Parse CLI args
   const args = process.argv.slice(2);
