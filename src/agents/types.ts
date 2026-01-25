@@ -117,40 +117,79 @@ export interface SubAgentCallbacks {
   onToken?: (token: string) => void;
 }
 
-// Utility type guards
+/**
+ * Determines whether the given AgentResult is an ExploreResult.
+ *
+ * @returns `true` if `result` is an `ExploreResult`, `false` otherwise.
+ */
 export function isExploreResult(result: AgentResult): result is ExploreResult {
   return result.type === "explore";
 }
 
+/**
+ * Determines whether an AgentResult represents a research result.
+ *
+ * @returns `true` if `result.type` is `"research"`, `false` otherwise.
+ */
 export function isResearchResult(
   result: AgentResult
 ): result is ResearchResult {
   return result.type === "research";
 }
 
+/**
+ * Checks whether the provided result represents a plan agent's result.
+ *
+ * @param result - The AgentResult to check
+ * @returns `true` if `result` is a `PlanResult`, `false` otherwise.
+ */
 export function isPlanResult(result: AgentResult): result is PlanResult {
   return result.type === "plan";
 }
 
+/**
+ * Determines whether an AgentResult is an execute result.
+ *
+ * @returns `true` if `result` has type `"execute"`, `false` otherwise.
+ */
 export function isExecuteResult(result: AgentResult): result is ExecuteResult {
   return result.type === "execute";
 }
 
+/**
+ * Type guard that determines whether an AgentResult is a RefactorResult.
+ *
+ * @returns `true` if the result has type `"refactor"`, `false` otherwise.
+ */
 export function isRefactorResult(
   result: AgentResult
 ): result is RefactorResult {
   return result.type === "refactor";
 }
 
+/**
+ * Determines whether an AgentResult represents an assess result.
+ *
+ * @returns `true` if the result has `type` equal to `"assess"`, `false` otherwise.
+ */
 export function isAssessResult(result: AgentResult): result is AssessResult {
   return result.type === "assess";
 }
 
+/**
+ * Determines whether an AgentResult represents a verify result.
+ *
+ * @returns `true` if `result` has `type` equal to `"verify"`, `false` otherwise.
+ */
 export function isVerifyResult(result: AgentResult): result is VerifyResult {
   return result.type === "verify";
 }
 
-// Generate unique task ID
+/**
+ * Generate a short, 5-character alphanumeric task identifier.
+ *
+ * @returns A 5-character alphanumeric identifier string suitable for use as a task id
+ */
 export function generateTaskId(): string {
   return Math.random().toString(36).substring(2, 7);
 }

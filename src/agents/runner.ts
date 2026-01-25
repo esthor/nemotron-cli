@@ -18,8 +18,14 @@ import type {
 const DEBUG = process.env.DEBUG === "1";
 
 /**
- * Run a sub-agent with isolated context
- * Returns structured result when complete
+ * Run a sub-agent in an isolated conversation and produce a structured AgentResult.
+ *
+ * Orchestrates LLM turns and any tool executions required by the agent, reporting progress and tool-call events via the provided callbacks.
+ *
+ * @param task - The sub-agent task describing the agent type and prompt to run
+ * @param callbacks - Handlers for progress updates, tool-call notifications, and token streaming
+ * @returns An AgentResult parsed from the agent's final content, or a default result synthesized when parsing fails
+ * @throws Propagates errors encountered while obtaining LLM responses or executing tools
  */
 export async function runSubAgent(
   task: SubAgentTask,
@@ -96,7 +102,14 @@ export async function runSubAgent(
 }
 
 /**
- * Get LLM response (non-streaming for sub-agents to reduce complexity)
+ * Obtain a single LLM reply and any proposed tool calls for a sub-agent.
+ *
+ * Calls `callbacks.onToken` with the full response content if both the content and `onToken` are present.
+ *
+ * @param messages - Chat message history to send to the LLM
+ * @param tools - Available tools the LLM may reference in its response
+ * @param callbacks - Sub-agent callbacks; `onToken` will be invoked with the response content when available
+ * @returns An object containing the assistant `content` and an array of `toolCalls` (empty if none)
  */
 async function getResponse(
   messages: Message[],
@@ -116,7 +129,9 @@ async function getResponse(
 }
 
 /**
- * Extract structured result from agent's final response
+ * Derive a structured AgentResult from the agent's final text response.
+ *
+ * @returns The parsed `AgentResult` if the response contains a JSON object whose `type` matches `agentType`; otherwise a default `AgentResult` synthesized for `agentType`.
  */
 function extractResult(
   agentType: AgentType,
@@ -142,7 +157,14 @@ function extractResult(
 }
 
 /**
- * Generate a default structured result when parsing fails
+ * Create a type-specific default AgentResult when the agent's final content does not contain a valid structured JSON result.
+ *
+ * Uses the first 500 characters of `content` (or a fallback string) as a human-readable summary and returns a minimal, valid result object shaped for the provided `agentType`.
+ *
+ * @param agentType - The agent type to shape the default result for (e.g., "explore", "research", "plan", "execute", "refactor", "assess", "verify")
+ * @param content - The raw final assistant content; its prefix is used to populate the result `summary`
+ * @param messages - The full message history for context; included only to allow callers to provide the session history if needed
+ * @returns An AgentResult object populated with type-appropriate empty collections and a `summary` derived from `content`; for "assess" the `businessValue` defaults to `"medium"`, and for "verify" `passed` defaults to `true`
  */
 function generateDefaultResult(
   agentType: AgentType,

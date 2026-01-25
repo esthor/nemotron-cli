@@ -8,7 +8,13 @@ const SEARCH_TIMEOUT = 10000; // 10 seconds
 const FETCH_TIMEOUT = 15000; // 15 seconds
 
 /**
- * Search the web using DuckDuckGo HTML API (no API key required)
+ * Perform a DuckDuckGo HTML search and return formatted search results.
+ *
+ * @param query - The search query; must be a non-empty string.
+ * @returns A numbered list of search results (index, title, URL, snippet) or `"No search results found."` when no results are available.
+ * @throws Error with message "Search query cannot be empty" if `query` is empty.
+ * @throws Error with message "Search timed out" if the search exceeds the configured timeout.
+ * @throws Error for non-OK HTTP responses (message includes status code and status text) and other network failures.
  */
 export async function webSearch(query: string): Promise<string> {
   if (!query || query.trim().length === 0) {
@@ -47,7 +53,10 @@ export async function webSearch(query: string): Promise<string> {
 }
 
 /**
- * Parse DuckDuckGo HTML search results
+ * Extracts up to 10 search results from DuckDuckGo search results HTML and formats them as a numbered list.
+ *
+ * @param html - The HTML markup of a DuckDuckGo search results page.
+ * @returns A numbered list where each entry contains the result title, URL, and snippet (or "(no snippet)" if absent); or the string "No search results found." when no results are found.
  */
 function parseSearchResults(html: string): string {
   const results: { title: string; url: string; snippet: string }[] = [];
@@ -104,7 +113,13 @@ function parseSearchResults(html: string): string {
 }
 
 /**
- * Fetch content from a URL and convert to readable text
+ * Fetches the resource at the given URL and returns a plain-text representation truncated to MAX_CONTENT_SIZE.
+ *
+ * @param url - The HTTP(S) URL to fetch; must start with "http://" or "https://".
+ * @returns The fetched content converted to readable plain text (HTML is converted to text) truncated to MAX_CONTENT_SIZE.
+ * @throws Error when `url` is invalid (does not start with "http://" or "https://").
+ * @throws Error if the HTTP response is not OK (message includes status and statusText).
+ * @throws Error with message "Fetch timed out" if the request exceeds the configured timeout.
  */
 export async function webFetch(url: string): Promise<string> {
   if (!url || !url.startsWith("http")) {
@@ -150,7 +165,10 @@ export async function webFetch(url: string): Promise<string> {
 }
 
 /**
- * Convert HTML to readable text (simple implementation)
+ * Convert HTML into readable plain text with lightweight formatting.
+ *
+ * @param html - The HTML source to convert
+ * @returns The resulting plain-text content with headers, paragraphs, lists, links, inline formatting, code blocks preserved in a readable form; HTML entities are decoded and whitespace is normalized
  */
 function htmlToText(html: string): string {
   // Remove script and style tags
@@ -195,7 +213,10 @@ function htmlToText(html: string): string {
 }
 
 /**
- * Decode HTML entities
+ * Decode HTML entities in a string to their corresponding characters.
+ *
+ * @param text - String that may contain named entities (e.g., &amp;, &lt;), decimal numeric (&#123;) or hexadecimal (&#x7B;) character references
+ * @returns The input string with HTML entities and numeric character references decoded to their corresponding characters
  */
 function decodeHtmlEntities(text: string): string {
   return text
@@ -212,7 +233,10 @@ function decodeHtmlEntities(text: string): string {
 }
 
 /**
- * Decode DuckDuckGo redirect URLs
+ * Extracts the original target URL from a DuckDuckGo redirect URL when present.
+ *
+ * @param url - The URL to inspect, possibly containing a DuckDuckGo `uddg` redirect parameter
+ * @returns The decoded target URL if a `uddg` parameter is found, otherwise the original `url`
  */
 function decodeUrl(url: string): string {
   // DuckDuckGo wraps URLs in their redirect

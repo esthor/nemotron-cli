@@ -230,6 +230,14 @@ export class OllamaClient {
 
 export let client = new OllamaClient();
 
+/**
+ * Reinitializes the exported Ollama client with the provided configuration.
+ *
+ * Replaces the module-level `client` instance by constructing a new `OllamaClient`
+ * using the given partial configuration merged with defaults.
+ *
+ * @param config - Partial client configuration used to configure the new `OllamaClient`
+ */
 export function initClient(config: Partial<OllamaClientConfig>): void {
   client = new OllamaClient(config);
 }
