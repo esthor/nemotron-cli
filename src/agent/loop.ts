@@ -2,12 +2,11 @@
  * Agent loop - orchestrates LLM and tool execution
  */
 
-import type { Message, ToolCall, OllamaStreamChunk } from "../llm/client.ts";
-import { client } from "../llm/client.ts";
-import { SYSTEM_PROMPT, tools } from "../llm/prompts.ts";
+import type { Message, ToolCall, OllamaStreamChunk, Tool } from "../llm/client.ts";
+import { client as defaultClient, createClient } from "../llm/client.ts";
 import { executeTool, formatToolCall } from "../tools/index.ts";
-
-const MAX_ITERATIONS = 10;
+import type { AgentConfig } from "./config.ts";
+import { defaultAgentConfig } from "./config.ts";
 
 export interface AgentCallbacks {
   onThinking: () => void;
@@ -21,22 +20,28 @@ export interface AgentCallbacks {
 export async function runAgent(
   userMessage: string,
   history: Message[],
-  callbacks: AgentCallbacks
+  callbacks: AgentCallbacks,
+  config?: AgentConfig
 ): Promise<Message[]> {
+  const cfg = config ?? defaultAgentConfig();
+  const llmClient = config
+    ? createClient(cfg.llm)
+    : defaultClient;
+
   const messages: Message[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: cfg.systemPrompt },
     ...history,
     { role: "user", content: userMessage },
   ];
 
   let iterations = 0;
 
-  while (iterations < MAX_ITERATIONS) {
+  while (iterations < cfg.loop.maxIterations) {
     iterations++;
     callbacks.onThinking();
 
     try {
-      const { content, toolCalls } = await streamResponse(messages, callbacks);
+      const { content, toolCalls } = await streamResponse(messages, callbacks, llmClient, cfg.tools);
 
       // Add assistant message to history
       const assistantMessage: Message = {
@@ -57,7 +62,7 @@ export async function runAgent(
         const argsJson = JSON.stringify(toolCall.function.arguments);
         callbacks.onToolCall(toolCall.function.name, argsJson);
 
-        const result = await executeTool(toolCall.function.name, argsJson);
+        const result = await executeTool(toolCall.function.name, argsJson, cfg);
 
         callbacks.onToolResult(
           toolCall.function.name,
@@ -82,7 +87,7 @@ export async function runAgent(
     }
   }
 
-  if (iterations >= MAX_ITERATIONS) {
+  if (iterations >= cfg.loop.maxIterations) {
     callbacks.onError(new Error("Max iterations reached"));
   }
 
@@ -95,14 +100,16 @@ const USE_STREAMING = process.env.NO_STREAM !== "1";
 
 async function streamResponse(
   messages: Message[],
-  callbacks: AgentCallbacks
+  callbacks: AgentCallbacks,
+  llmClient: typeof defaultClient,
+  tools: Tool[]
 ): Promise<{ content: string; toolCalls: ToolCall[] }> {
   // Non-streaming mode for better tool call reliability
   if (!USE_STREAMING) {
     if (DEBUG) {
       console.error("\n[DEBUG] Using non-streaming mode");
     }
-    const result = await client.chat(messages, tools);
+    const result = await llmClient.chat(messages, tools);
     if (DEBUG) {
       console.error("\n[DEBUG] Response:", JSON.stringify(result, null, 2));
     }
@@ -119,7 +126,7 @@ async function streamResponse(
   let content = "";
   let toolCalls: ToolCall[] = [];
 
-  for await (const chunk of client.chatStream(messages, tools)) {
+  for await (const chunk of llmClient.chatStream(messages, tools)) {
     if (DEBUG) {
       console.error("\n[DEBUG] Chunk:", JSON.stringify(chunk, null, 2));
     }

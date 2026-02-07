@@ -7,6 +7,7 @@ import * as p from "@clack/prompts";
 import type { Message } from "./llm/client.ts";
 import { client } from "./llm/client.ts";
 import { runAgent, type AgentCallbacks } from "./agent/loop.ts";
+import { defaultAgentConfig } from "./agent/config.ts";
 import { Spinner, colorize } from "./ui/spinner.ts";
 import {
   renderWelcome,
@@ -59,6 +60,12 @@ ${colorize("Requirements:", "dim")}
 
   // Show welcome
   renderWelcome();
+
+  // Build config with optional env var overrides
+  const config = defaultAgentConfig();
+  if (process.env.NEMOTRON_MODEL) config.llm.model = process.env.NEMOTRON_MODEL;
+  if (process.env.NEMOTRON_MAX_ITERATIONS) config.loop.maxIterations = parseInt(process.env.NEMOTRON_MAX_ITERATIONS);
+  if (process.env.NEMOTRON_TIMEOUT) config.bash.timeoutMs = parseInt(process.env.NEMOTRON_TIMEOUT);
 
   // Conversation history
   let history: Message[] = [];
@@ -143,7 +150,7 @@ ${colorize("Requirements:", "dim")}
     };
 
     try {
-      history = await runAgent(userInput, history, callbacks);
+      history = await runAgent(userInput, history, callbacks, config);
     } catch (error) {
       thinkingSpinner.stop();
       renderError(error instanceof Error ? error : new Error(String(error)));

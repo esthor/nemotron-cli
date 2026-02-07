@@ -4,9 +4,13 @@
 
 import { resolve } from "path";
 
-const MAX_FILE_SIZE = 100 * 1024; // 100KB limit
+export interface FileConfig {
+  maxReadBytes: number;
+}
 
-export async function readFile(path: string): Promise<string> {
+const DEFAULTS: FileConfig = { maxReadBytes: 100 * 1024 };
+
+export async function readFile(path: string, config: FileConfig = DEFAULTS): Promise<string> {
   const resolved = resolve(path);
   const file = Bun.file(resolved);
 
@@ -15,9 +19,9 @@ export async function readFile(path: string): Promise<string> {
   }
 
   const size = file.size;
-  if (size > MAX_FILE_SIZE) {
+  if (size > config.maxReadBytes) {
     const content = await file.text();
-    const truncated = content.slice(0, MAX_FILE_SIZE);
+    const truncated = content.slice(0, config.maxReadBytes);
     return `${truncated}\n\n[... truncated, file is ${Math.round(size / 1024)}KB ...]`;
   }
 

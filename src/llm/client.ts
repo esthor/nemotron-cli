@@ -229,3 +229,7 @@ export class OllamaClient {
 }
 
 export const client = new OllamaClient();
+
+export function createClient(config: { baseUrl: string; model: string }): OllamaClient {
+  return new OllamaClient(config);
+}

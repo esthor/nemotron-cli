@@ -4,6 +4,11 @@
   "description": "A coding agent CLI powered by NVIDIA Nemotron 3 Nano",
   "module": "src/index.ts",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/agent/config.ts",
+    "./agent": "./src/agent/loop.ts"
+  },
   "bin": {
     "nemotron": "./src/index.ts"
   },

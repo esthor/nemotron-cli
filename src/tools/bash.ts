@@ -2,10 +2,14 @@
  * Bash command execution tool
  */
 
-const TIMEOUT_MS = 30_000; // 30 second timeout
-const MAX_OUTPUT = 50_000; // 50KB output limit
+export interface BashConfig {
+  timeoutMs: number;
+  maxOutputBytes: number;
+}
 
-export async function bash(command: string): Promise<string> {
+const DEFAULTS: BashConfig = { timeoutMs: 30_000, maxOutputBytes: 50_000 };
+
+export async function bash(command: string, config: BashConfig = DEFAULTS): Promise<string> {
   const proc = Bun.spawn(["bash", "-c", command], {
     stdout: "pipe",
     stderr: "pipe",
@@ -15,8 +19,8 @@ export async function bash(command: string): Promise<string> {
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
       proc.kill();
-      reject(new Error(`Command timed out after ${TIMEOUT_MS / 1000}s`));
-    }, TIMEOUT_MS);
+      reject(new Error(`Command timed out after ${config.timeoutMs / 1000}s`));
+    }, config.timeoutMs);
   });
 
   try {
@@ -41,8 +45,8 @@ export async function bash(command: string): Promise<string> {
     }
 
     // Truncate if too long
-    if (output.length > MAX_OUTPUT) {
-      output = output.slice(0, MAX_OUTPUT) + "\n\n[... output truncated ...]";
+    if (output.length > config.maxOutputBytes) {
+      output = output.slice(0, config.maxOutputBytes) + "\n\n[... output truncated ...]";
     }
 
     return output;

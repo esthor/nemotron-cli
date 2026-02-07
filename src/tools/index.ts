@@ -5,6 +5,8 @@
 import { readFile, writeFile, editFile } from "./file.ts";
 import { bash } from "./bash.ts";
 import { glob, grep } from "./search.ts";
+import type { AgentConfig } from "../agent/config.ts";
+import { defaultAgentConfig } from "../agent/config.ts";
 
 export type ToolResult = {
   success: boolean;
@@ -13,40 +15,43 @@ export type ToolResult = {
 
 type ToolHandler = (args: Record<string, unknown>) => Promise<string>;
 
-const toolHandlers: Record<string, ToolHandler> = {
-  read_file: async (args) => {
-    return readFile(args.path as string);
-  },
-
-  write_file: async (args) => {
-    return writeFile(args.path as string, args.content as string);
-  },
-
-  edit_file: async (args) => {
-    return editFile(
-      args.path as string,
-      args.search as string,
-      args.replace as string
-    );
-  },
-
-  bash: async (args) => {
-    return bash(args.command as string);
-  },
-
-  glob: async (args) => {
-    return glob(args.pattern as string);
-  },
-
-  grep: async (args) => {
-    return grep(args.pattern as string, args.path as string | undefined);
-  },
-};
-
 export async function executeTool(
   name: string,
-  argsJson: string
+  argsJson: string,
+  config?: AgentConfig
 ): Promise<ToolResult> {
+  const cfg = config ?? defaultAgentConfig();
+
+  const toolHandlers: Record<string, ToolHandler> = {
+    read_file: async (args) => {
+      return readFile(args.path as string, cfg.file);
+    },
+
+    write_file: async (args) => {
+      return writeFile(args.path as string, args.content as string);
+    },
+
+    edit_file: async (args) => {
+      return editFile(
+        args.path as string,
+        args.search as string,
+        args.replace as string
+      );
+    },
+
+    bash: async (args) => {
+      return bash(args.command as string, cfg.bash);
+    },
+
+    glob: async (args) => {
+      return glob(args.pattern as string, cfg.search);
+    },
+
+    grep: async (args) => {
+      return grep(args.pattern as string, args.path as string | undefined, cfg.search);
+    },
+  };
+
   const handler = toolHandlers[name];
 
   if (!handler) {
